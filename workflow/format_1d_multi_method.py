@@ -19,7 +19,7 @@ def load_raw(path: pathlib.Path) -> pd.DataFrame:
 
     df = pd.read_csv(path)
 
-    # Normalize column names
+    # Normalize column names for robust matching
     df.columns = [c.strip().lower() for c in df.columns]
 
     if "method" not in df.columns:
@@ -39,7 +39,7 @@ def load_raw(path: pathlib.Path) -> pd.DataFrame:
     # Clean method labels
     df["method"] = df["method"].astype(str).str.strip()
 
-    # Coerce numeric value
+    # Coerce numeric measurement to a standard column name
     df["value"] = pd.to_numeric(df[value_col], errors="coerce")
 
     # Drop invalid rows
@@ -49,7 +49,7 @@ def load_raw(path: pathlib.Path) -> pd.DataFrame:
     if after < before:
         print(f"Dropped {before - after} rows with missing method/value", file=sys.stderr)
 
-    # Range check for AUC-ROC
+    # AUC-ROC must be within [0, 1]
     bad = (~df["value"].between(0, 1)).sum()
     if bad > 0:
         raise ValueError(f"Found {bad} rows with value outside [0, 1]. Refusing to proceed.")
@@ -59,7 +59,6 @@ def load_raw(path: pathlib.Path) -> pd.DataFrame:
 
 def main() -> None:
     df = load_raw(DATA_PATH)
-
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUT_PATH, index=False)
     print(f"Wrote tidy data to {OUT_PATH}")
